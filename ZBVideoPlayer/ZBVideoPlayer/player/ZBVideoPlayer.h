@@ -9,6 +9,12 @@
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
 
+typedef enum : NSUInteger {
+    PlayerScreenStateSmall,
+    PlayerScreenStateFull,
+    PlayerScreenStateChanging,
+} PlayerScreenState;
+
 @protocol ZBVideoPlayerDelegate <NSObject>
 
 @optional
@@ -18,19 +24,21 @@
 - (void)VideoIsPlaying;
 - (void)playVideoError;
 
-- (void)playerWillChangeSmallScreen;
-- (void)playerWillChangeFullScreen;
+- (void)playerWillEnterFullScreen;
+- (void)playerWillExitFullScreen;
 
-- (void)playerDidChangeSmallScreen;
-- (void)playerDidChangeFullScreen;
+- (void)playerDidEnterFullScreen;
+- (void)playerDidExitFullScreen;
 
 @end
 
 @interface ZBVideoPlayer : UIView
 
-@property (weak, nonatomic) id<ZBVideoPlayerDelegate> delegate;
+@property (weak, nonatomic) id <ZBVideoPlayerDelegate> delegate;
 
 @property (strong, nonatomic) AVPlayer *avPlayer;
+
+@property (assign, nonatomic) PlayerScreenState screenState;
 
 @property (assign, nonatomic) BOOL enableLog;
 
@@ -42,5 +50,8 @@
 
 - (void)playVideo:(NSURL *)URL;
 - (void)changeVideo:(NSURL *)URL;
+
+- (void)enterFullScreen;
+- (void)exitFullScreen;
 
 @end

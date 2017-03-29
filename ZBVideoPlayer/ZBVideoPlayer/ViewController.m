@@ -9,29 +9,65 @@
 #import "ViewController.h"
 #import "ZBVideoPlayer.h"
 
-@interface ViewController ()
+@interface ViewController () <ZBVideoPlayerDelegate>
+
+@property (strong, nonatomic) ZBVideoPlayer *player;
 
 @end
 
 @implementation ViewController
 
-- (void)viewDidLoad {
+- (void)viewDidLoad
+{
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
-    ZBVideoPlayer *player = [ZBVideoPlayer playerWithURL:[NSURL URLWithString:@"http://live.hkstv.hk.lxdns.com/live/hks/playlist.m3u8"]];
-    [player setFrame:CGRectMake(0, 100, self.view.frame.size.width, self.view.frame.size.width * 9 / 16)];
-    player.enableLog = YES;
-    [self.view addSubview:player];
+    self.player = [ZBVideoPlayer playerWithURL:[NSURL URLWithString:@"http://live.hkstv.hk.lxdns.com/live/hks/playlist.m3u8"]];
+    [self.player setFrame:CGRectMake(0, 100, self.view.frame.size.width, self.view.frame.size.width * 9 / 16)];
+    self.player.enableLog = YES;
+    self.player.delegate = self;
+    [self.view addSubview:self.player];
     
-    [player play];
+    UITapGestureRecognizer *doubleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(changePlayerScreenState)];
+    [doubleTap setNumberOfTapsRequired:2];
+    [self.player addGestureRecognizer:doubleTap];
+    
+    [self.player play];
 }
 
-
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
+- (void)changePlayerScreenState
+{
+    if (self.player.screenState == PlayerScreenStateSmall) {
+        [self.player enterFullScreen];
+    }
+    else if (self.player.screenState == PlayerScreenStateFull) {
+        [self.player exitFullScreen];
+    }
 }
 
+- (void)playerWillEnterFullScreen
+{
+    [[UIApplication sharedApplication] setStatusBarOrientation:UIInterfaceOrientationLandscapeRight];
+}
+
+- (void)playerWillExitFullScreen
+{
+    [[UIApplication sharedApplication] setStatusBarOrientation:UIInterfaceOrientationPortrait];
+}
+
+- (void)playerDidEnterFullScreen
+{
+    
+}
+
+- (void)playerDidExitFullScreen
+{
+    
+}
+
+- (BOOL)shouldAutorotate
+{
+    return NO;
+}
 
 @end

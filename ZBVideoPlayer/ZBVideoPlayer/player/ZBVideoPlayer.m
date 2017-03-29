@@ -19,6 +19,9 @@
 @property (assign, nonatomic) CGFloat keepRate;
 @property (assign, nonatomic) CGFloat currentRate;
 
+@property (weak, nonatomic) UIView *parentView;
+@property (assign, nonatomic) CGRect playerFrame;
+
 @end
 
 @implementation ZBVideoPlayer
@@ -69,6 +72,8 @@
     self.keepRate = 0.0;
     self.currentRate = 0.0;
     
+    self.screenState = PlayerScreenStateSmall;
+    
     [self setupCurrentItemObserver];
 }
 
@@ -106,11 +111,15 @@
         if ([keyPath isEqualToString:PLAYER_ITEM_STATUS]) {
             if ([playerItem status] == AVPlayerStatusReadyToPlay) {
                 DEBUGLOG(@"player is ready to play");
-                [self.delegate VideoIsReadyToPlay];
+                if ([self.delegate respondsToSelector:@selector(VideoIsReadyToPlay)]) {
+                    [self.delegate VideoIsReadyToPlay];
+                }
             }
             else if ([playerItem status] == AVPlayerStatusFailed || [playerItem status] == AVPlayerStatusUnknown) {
                 DEBUGLOG(@"play video error");
-                [self.delegate playVideoError];
+                if ([self.delegate respondsToSelector:@selector(playVideoError)]) {
+                    [self.delegate playVideoError];
+                }
             }
         }
         else if ([keyPath isEqualToString:PLAYER_ITEM_LOADED_TIME_RANGES]) {
@@ -160,6 +169,73 @@
     [self setupCurrentItemObserver];
 }
 
+- (void)enterFullScreen
+{
+    if (self.screenState != PlayerScreenStateSmall) {
+        return ;
+    }
+    
+    DEBUGLOG(@"enter full screen");
+    
+    if ([self.delegate respondsToSelector:@selector(playerWillEnterFullScreen)]) {
+        [self.delegate playerWillEnterFullScreen];
+    }
+    
+    self.screenState = PlayerScreenStateChanging;
+    
+    self.parentView = self.superview;
+    self.playerFrame = self.frame;
+    
+    CGRect frame = [self convertRect:self.bounds toView:[UIApplication sharedApplication].keyWindow];
+    [self removeFromSuperview];
+    self.frame = frame;
+    [[UIApplication sharedApplication].keyWindow addSubview:self];
+    
+    [UIView animateWithDuration:0.3 animations:^{
+        self.transform = CGAffineTransformMakeRotation(M_PI_2);
+        self.bounds = CGRectMake(0, 0, CGRectGetHeight(self.superview.bounds), CGRectGetWidth(self.superview.bounds));
+        self.center = CGPointMake(CGRectGetMidX(self.superview.bounds), CGRectGetMidY(self.superview.bounds));
+    } completion:^(BOOL finished) {
+        self.screenState = PlayerScreenStateFull;
+        
+        if ([self.delegate respondsToSelector:@selector(playerDidEnterFullScreen)]) {
+            [self.delegate playerDidEnterFullScreen];
+        }
+    }];
+}
+
+- (void)exitFullScreen
+{
+    if (self.screenState != PlayerScreenStateFull) {
+        return ;
+    }
+    
+    DEBUGLOG(@"exit full screen");
+    
+    if ([self.delegate respondsToSelector:@selector(playerWillExitFullScreen)]) {
+        [self.delegate playerWillExitFullScreen];
+    }
+    
+    self.screenState = PlayerScreenStateChanging;
+    
+    CGRect frame = [self.parentView convertRect:self.playerFrame toView:[UIApplication sharedApplication].keyWindow];
+    
+    [UIView animateWithDuration:0.3 animations:^{
+        self.transform = CGAffineTransformIdentity;
+        self.frame = frame;
+    } completion:^(BOOL finished) {
+        [self removeFromSuperview];
+        self.frame = self.playerFrame;
+        [self.parentView addSubview:self];
+        
+        self.screenState = PlayerScreenStateSmall;
+        
+        if ([self.delegate respondsToSelector:@selector(playerDidExitFullScreen)]) {
+            [self.delegate playerDidExitFullScreen];
+        }
+    }];
+}
+
 #pragma mark - timer
 - (void)startTimer
 {
@@ -187,11 +263,15 @@
 - (void)checkVideoLoadStatus
 {
     if (self.keepRate == self.currentRate) {
-        [self.delegate VideoIsLoading];
+        if ([self.delegate respondsToSelector:@selector(VideoIsLoading)]) {
+            [self.delegate VideoIsLoading];
+        }
         DEBUGLOG(@"video is loading");
     }
     else {
-        [self.delegate VideoIsPlaying];
+        if ([self.delegate respondsToSelector:@selector(VideoIsPlaying)]) {
+            [self.delegate VideoIsPlaying];
+        }
     }
     
     self.keepRate = self.currentRate;
