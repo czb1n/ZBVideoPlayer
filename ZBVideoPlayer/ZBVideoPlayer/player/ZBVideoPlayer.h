@@ -19,10 +19,11 @@ typedef enum : NSUInteger {
 
 @optional
 
-- (void)VideoIsReadyToPlay;
-- (void)VideoIsLoading;
-- (void)VideoIsPlaying;
-- (void)playVideoError;
+- (void)videoIsReadyToPlay;
+- (void)videoIsLoading;
+- (void)videoIsPlaying;
+// when player item status is unknown, the error is nil.
+- (void)playVideoError:(NSError *)error;
 
 - (void)playerWillEnterFullScreen;
 - (void)playerWillExitFullScreen;

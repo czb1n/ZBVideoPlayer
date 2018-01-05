@@ -103,23 +103,32 @@
     }
 }
 
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
+{
     if ([object isKindOfClass:[AVPlayerItem class]]) {
         AVPlayerItem *playerItem = (AVPlayerItem *)object;
-        
         if ([keyPath isEqualToString:PLAYER_ITEM_STATUS]) {
-            if ([playerItem status] == AVPlayerStatusReadyToPlay) {
-                DEBUGLOG(@"player is ready to play");
-                if ([self.delegate respondsToSelector:@selector(VideoIsReadyToPlay)]) {
-                    [self.delegate VideoIsReadyToPlay];
-                }
-            }
-            else if ([playerItem status] == AVPlayerStatusFailed || [playerItem status] == AVPlayerStatusUnknown) {
-                DEBUGLOG(@"play video error");
-                if ([self.delegate respondsToSelector:@selector(playVideoError)]) {
-                    [self.delegate playVideoError];
-                }
+            switch ([playerItem status]) {
+                case AVPlayerStatusReadyToPlay:
+                    DEBUGLOG(@"player is ready to play");
+                    if ([self.delegate respondsToSelector:@selector(videoIsReadyToPlay)]) {
+                        [self.delegate videoIsReadyToPlay];
+                    }
+                    break;
+                case AVPlayerStatusFailed:
+                    DEBUGLOG(@"play video error : %@", playerItem.error.description);
+                    if ([self.delegate respondsToSelector:@selector(playVideoError:)]) {
+                        [self.delegate playVideoError:playerItem.error];
+                    }
+                    break;
+                case AVPlayerStatusUnknown:
+                    DEBUGLOG(@"play video unknown error");
+                    if ([self.delegate respondsToSelector:@selector(playVideoError:)]) {
+                        [self.delegate playVideoError:nil];
+                    }
+                    break;
+                default:
+                    break;
             }
         }
         else if ([keyPath isEqualToString:PLAYER_ITEM_LOADED_TIME_RANGES]) {
@@ -132,7 +141,7 @@
             
             self.currentRate = result;
             
-            DEBUGLOG(@"current player item loaded time %f, %f, %f", startSeconds, durationSeconds, result);
+            DEBUGLOG(@"current player item loaded start time = %f, duration = %f, rate = %f", startSeconds, durationSeconds, result);
         }
     }
 }
@@ -263,14 +272,14 @@
 - (void)checkVideoLoadStatus
 {
     if (self.keepRate == self.currentRate) {
-        if ([self.delegate respondsToSelector:@selector(VideoIsLoading)]) {
-            [self.delegate VideoIsLoading];
+        if ([self.delegate respondsToSelector:@selector(videoIsLoading)]) {
+            [self.delegate videoIsLoading];
         }
         DEBUGLOG(@"video is loading");
     }
     else {
-        if ([self.delegate respondsToSelector:@selector(VideoIsPlaying)]) {
-            [self.delegate VideoIsPlaying];
+        if ([self.delegate respondsToSelector:@selector(videoIsPlaying)]) {
+            [self.delegate videoIsPlaying];
         }
     }
     
